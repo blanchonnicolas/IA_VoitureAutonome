@@ -681,26 +681,25 @@ cats = {
 	'void': [0, 1, 2, 3, 4, 5, 6],
 }
 
-def convert_mask(img, one_hot_encoder=False):
-    """Cette méthode permet de convertir l'image '_labelids.png' du jeu de données de CityScapes, et retourne le mask parfaitement formaté.
-La méthode permet de récupérer le mask au format one_hot_encoder ou au format label_encoder.
-arguments:
-- img (type numpy.array): image du jeu de données CityScapes '...labelids.png' au format numpy  
-- one_hot_encoder (type bool optionnel)(default False) : Permet de choisir le mode de conversion (one_hot_encoder 8 channel ou label_encoder 1 channel)
-    
-return:
-mask (type numpy.array) : mask pour la segmentation sémantique au format one hot encoder ou label encoder avec les 8 catégories principal (void, flat, construction, object, nature, sky, human, vehicle)
+def convert_mask(img):
+    """Cette méthode permet de convertir l'image '_labelids.png' du jeu de données de CityScapes.
+    La méthode permet de récupérer l'image au format one_hot_encoder ou au format label_encoder.
+    arguments:
+    - img (type numpy.array): image du jeu de données CityScapes '...labelids.png' au format numpy  
+    return:
+    mask (type numpy.array) : mask pour la segmentation sémantique au format label encoder avec les 8 catégories principal (void, flat, construction, object, nature, sky, human, vehicle)
     """
-    print(f'1. img.shape : {img.shape}')
+    #print(len(img.shape))
     if len(img.shape) == 3:
         img = np.squeeze(img[:, :, 0])
     else:
         img = np.squeeze(img)
-    print(f'2. img.shape : {img.shape}')
+        #print(img.shape)
     mask = np.zeros((img.shape[0], img.shape[1], 8), dtype=np.uint16)
-    print(f'3. mask.shape : {mask.shape}')
+    print(mask.shape)
     for i in range(-1, 34):
-        if i in cats['void']:
+        if i in cats['void']: 
+            #Logical OR is applied to the elements of mask and labelIds_img. If mask.shape != labelIds_img.shape,.
             mask[:, :, 0] = np.logical_or(mask[:, :, 0], (img == i))
         elif i in cats['flat']:
             mask[:, :, 1] = np.logical_or(mask[:, :, 1], (img == i))
@@ -716,21 +715,16 @@ mask (type numpy.array) : mask pour la segmentation sémantique au format one ho
             mask[:, :, 6] = np.logical_or(mask[:, :, 6], (img == i))
         elif i in cats['vehicle']:
             mask[:, :, 7] = np.logical_or(mask[:, :, 7], (img == i))
-    print(f'4. mask.shape : {mask.shape}')
-    if one_hot_encoder:
-        return np.array(mask, dtype='uint8')
-    else:
-        return np.array(np.argmax(mask, axis=2), dtype='uint8')
+    return np.array(np.argmax(mask, axis=2), dtype='uint8')
 
 # %% [markdown]
-# # Data Loader from dataset - Project 8 (La couleur des masques est prise en charge)
+# # DataLoader_simple from dataset - Project 8 (Sans Conversion des Masques)
 
 # %%
-
-# Notre classe hérite de la classe Keras.utils.Sequence
+# DATALOADER - Notre classe hérite de la classe Keras.utils.Sequence
 # Elle permet de créer un générateur de données
 # Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
-class Dataloader(Sequence):
+class Dataloader_simple(keras.utils.Sequence):
     """Load data from dataset to build bacthes
     Args:
         dataset : dataframe listing data and paths
@@ -745,7 +739,7 @@ class Dataloader(Sequence):
         normalization: Boolean,  if `True` normalizes images and masks RGB values ; The range for each individual colour is 0-255
     """
     # We provide one dataset, containing labelIds and 
-    def __init__(self, dataset, n_sample, batch_size=1, shuffle=False, resize=None, resize_width=256, resize_height=128, convert_mask=None, display=None, phase='train', augmentation=None, normalization=None):
+    def __init__(self, dataset, n_sample, batch_size=1, shuffle=False, resize=None, resize_width=256, resize_height=128, display=None, phase='train', augmentation=None, normalization=None):
         self.n_sample = n_sample
         self.phase = phase
         self.dataset = dataset.loc[dataset['Phase'] == self.phase, :].sample(self.n_sample) #ou dataset si on veut prendre tour le jeu de donnée
@@ -754,7 +748,6 @@ class Dataloader(Sequence):
         self.resize = resize
         self.resize_width = resize_width
         self.resize_height = resize_height
-        self.convert_mask = convert_mask
         self.augmentation = augmentation
         self.normalization = normalization
         self.display = display
@@ -777,7 +770,7 @@ class Dataloader(Sequence):
             # OpenImages and masks using OpenCV ibrary, and convert in np array
             image = cv2.imread(image_file)
             #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            mask = cv2.imread(mask_file, 0)
+            mask = cv2.imread(mask_file)
             #mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
             
             # apply resize
@@ -792,10 +785,6 @@ class Dataloader(Sequence):
                 new_width = image.shape[1]
                 new_channels = image.shape[2]
                 
-            
-            if self.convert_mask:
-                onehotencoder=False
-                mask = convert_mask(mask, False)
 
             # apply display
             if self.display:
@@ -858,6 +847,198 @@ class Dataloader(Sequence):
             # append image and mask to batch
             images.append(image)
             masks.append(mask)   
+            print(f'---------------- Image and Mask {j} from batch collected in Data Generator-----------------')
+
+        # transpose list of lists
+        image_batch = np.stack(images, axis=0) #A confirmer si images ou image
+        mask_batch = np.stack(masks, axis=0) #A confirmer si masks ou mask
+
+        #Add 1 dimension to return image_batch and mask_batch in 4 dimensions (batch number, height, width, channels), avec channel = 1 pour les masques et =3 pour les images
+        if len(mask_batch.shape) == 3:
+            mask_batch = np.expand_dims(mask_batch, axis = 3)
+
+        #print('mask_batch shape is ', mask_batch.shape)
+        return image_batch, mask_batch
+    
+    def __len__(self):
+        """Denotes the number of batches per epoch"""
+        return len(self.dataset) // self.batch_size
+    
+    def on_epoch_end(self):
+        """Callback function to shuffle dataset each epoch"""
+        if self.shuffle:
+            np.random.shuffle(self.dataset.values)
+
+# %% [markdown]
+# # DataLoader_advanced from dataset - Project 8 (Avec Conversion des Masques)
+
+# %%
+# DATALOADER - Notre classe hérite de la classe Keras.utils.Sequence
+# Elle permet de créer un générateur de données
+# Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
+class Dataloader_advanced(keras.utils.Sequence):
+    """Load data from dataset to build bacthes
+    Args:
+        dataset : dataframe listing data and paths
+        n_sample : to work with a reduced dataset
+        batch_size: Integet number of images in batch.
+        shuffle: Boolean, if `True` shuffle dataset each epoch.
+        resize: Boolean,  if `True` resize images and mask to same dimensions
+        resize_width & resize_height: New dimensions after resizing
+        display: display images when calling dataloader
+        phase: allow to set if dataloader shall filter on train, val or test images/masks
+        augmentation: Variable defining augmentation of image and mask
+        normalization: Boolean,  if `True` normalizes images and masks RGB values ; The range for each individual colour is 0-255
+    """
+    # We provide one dataset, containing labelIds and 
+    def __init__(self, dataset, n_sample, batch_size=1, shuffle=False, resize=None, resize_width=256, resize_height=128, convert=None, display=None, phase='train', augmentation=None, normalization=None):
+        self.n_sample = n_sample
+        self.phase = phase
+        self.dataset = dataset.loc[dataset['Phase'] == self.phase, :].sample(self.n_sample) #ou dataset si on veut prendre tour le jeu de donnée
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.resize = resize
+        self.resize_width = resize_width
+        self.resize_height = resize_height
+        self.convert = convert
+        self.augmentation = augmentation
+        self.normalization = normalization
+        self.display = display
+        self.on_epoch_end()
+
+    CATS = {
+        'void': [0, 1, 2, 3, 4, 5, 6],
+        'flat': [7, 8, 9, 10],
+        'construction': [11, 12, 13, 14, 15, 16],
+        'object': [17, 18, 19, 20],
+        'nature': [21, 22],
+        'sky': [23],
+        'human': [24, 25],
+        'vehicle': [26, 27, 28, 29, 30, 31, 32, 33,-1]
+    }
+    
+    def _convert_mask(self,img):
+        if len(img.shape) == 3:
+            img = np.squeeze(img[:, :, 0])
+        else:
+            img = np.squeeze(img)
+        mask = np.zeros((img.shape[0], img.shape[1], 8),dtype=np.uint8)
+        for i in range(-1, 34):
+            if i in self.CATS['void']:
+                mask[:,:,0] = np.logical_or(mask[:,:,0],(img==i))
+            elif i in self.CATS['flat']:
+                mask[:,:,1] = np.logical_or(mask[:,:,1],(img==i))
+            elif i in self.CATS['construction']:
+                mask[:,:,2] = np.logical_or(mask[:,:,2],(img==i))
+            elif i in self.CATS['object']:
+                mask[:,:,3] = np.logical_or(mask[:,:,3],(img==i))
+            elif i in self.CATS['nature']:
+                mask[:,:,4] = np.logical_or(mask[:,:,4],(img==i))
+            elif i in self.CATS['sky']:
+                mask[:,:,5] = np.logical_or(mask[:,:,5],(img==i))
+            elif i in self.CATS['human']:
+                mask[:,:,6] = np.logical_or(mask[:,:,6],(img==i))
+            elif i in self.CATS['vehicle']:
+                mask[:,:,7] = np.logical_or(mask[:,:,7],(img==i))
+        return np.array(np.argmax(mask,axis=2), dtype='uint8')
+
+    def __getitem__(self, i):
+        # collect batch images and masks
+        start = i * self.batch_size
+        stop = (i + 1) * self.batch_size
+        #print('start barch is ', start)
+        #print('stop barch is ', stop)
+        images = []
+        masks = []
+        for j in range(start, stop):
+            # Store entire paths to image_file and mask_file variable
+            image_file = list(self.dataset['Path_x'])[j]
+            mask_file = list(self.dataset['Path_y'])[j]
+            unique_index_file = list(self.dataset['File_unique_index'])[j]
+
+            # OpenImages and masks using OpenCV ibrary, and convert in np array
+            image = cv2.imread(image_file)
+            #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            mask = cv2.imread(mask_file)
+            #mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+            
+            # apply resize
+            if self.resize:
+                dim = (self.resize_width, self.resize_height)
+                original_height = image.shape[0]
+                original_width = image.shape[1]
+                original_channels = image.shape[2]
+                image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA) # resize image
+                mask = cv2.resize(mask, dim, interpolation = cv2.INTER_AREA)
+                new_height = image.shape[0]
+                new_width = image.shape[1]
+                new_channels = image.shape[2]
+                
+            if self.convert:
+                mask = self._convert_mask(mask)
+                
+            # apply display
+            if self.display:
+                #Display Image and Mask
+                plt.figure(figsize=(25, 5))
+                plt.subplots_adjust(hspace=0.5)
+                plt.subplot(120 + 1 + 0)
+                plt.imshow(image)
+                plt.subplot(120 + 1 + 1)
+                plt.imshow(mask)
+                plt.grid(False)
+                plt.suptitle(f'Images and Masks {unique_index_file}')
+                plt.show()
+                if self.resize:
+                    print('original height was ', original_height, ' and new height is ', new_height)
+                    print('original width was ', original_width, ' and new width is ', new_width)
+                    print('original channels was ', original_channels, ' and new channels is ', new_channels)
+                    
+
+            # apply normalization : Normalizing RGB values ; The range for each individual colour is 0-255 (as 2^8 = 256 possibilities).
+            if self.normalization:
+                normalizedImg = np.zeros((800, 800))
+                image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX) #image/255 ou normalizedImg
+                mask = cv2.normalize(mask, None, 0, 255, cv2.NORM_MINMAX) #mask/255
+                # apply display
+                if self.display:
+                    print(f'----------------Normalized Image and Mask {j} from batch collected-----------------')
+                    #Display Image and Mask
+                    plt.figure(figsize=(25, 5))
+                    plt.subplots_adjust(hspace=0.5)
+                    plt.subplot(120 + 1 + 0)
+                    plt.imshow(image)
+                    plt.subplot(120 + 1 + 1)
+                    plt.imshow(mask)
+                    plt.grid(False)
+                    plt.suptitle(f'Normalized Images and Masks {unique_index_file}')
+                    plt.show()
+            
+            # apply augmentations
+            if ((self.augmentation is not None) & (self.phase == 'train')):
+                # Augment an image
+                sample = self.augmentation(image=image, mask=mask)
+                augmented_image, augmented_mask = sample['image'], sample['mask']
+                # apply display
+                if self.display:
+                    print(f'----------------Augmented Image and Mask {j} from batch collected-----------------')
+                    #Display Image and Mask
+                    plt.figure(figsize=(25, 5))
+                    plt.subplots_adjust(hspace=0.5)
+                    plt.subplot(120 + 1 + 0)
+                    plt.imshow(augmented_image)
+                    plt.subplot(120 + 1 + 1)
+                    plt.imshow(augmented_mask)
+                    plt.grid(False)
+                    plt.suptitle(f'Augmented Images and Masks {unique_index_file}')
+                    plt.show()
+                    images.append(augmented_image)
+                    masks.append(augmented_mask)
+                    
+            # append image and mask to batch
+            images.append(image)
+            masks.append(mask)   
+            print(f'---------------- Image and Mask {j} from batch collected in Data Generator-----------------')
 
         # transpose list of lists
         image_batch = np.stack(images, axis=0) #A confirmer si images ou image
@@ -880,149 +1061,65 @@ class Dataloader(Sequence):
             np.random.shuffle(self.dataset.values)
 
 # %%
-# # Notre classe hérite de la classe Keras.utils.Sequence
-# # Elle permet de créer un générateur de données
-# # Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
-# class Dataloader(keras.utils.Sequence):
-#     """Load data from dataset to build bacthes
-#     Args:
-#         dataset : dataframe listing data and paths
-#         n_sample : to work with a reduced dataset
-#         batch_size: Integet number of images in batch.
-#         shuffle: Boolean, if `True` shuffle dataset each epoch.
-#         resize: Boolean,  if `True` resize images and mask to same dimensions
-#         resize_width & resize_height: New dimensions after resizing
-#         display: display images when calling dataloader
-#         phase: allow to set if dataloader shall filter on train, val or test images/masks
-#         augmentation: Variable defining augmentation of image and mask
-#         normalization: Boolean,  if `True` normalizes images and masks RGB values ; The range for each individual colour is 0-255
-#     """
-#     # We provide one dataset, containing labelIds and 
-#     def __init__(self, dataset, n_sample, batch_size=1, shuffle=False, resize=None, resize_width=256, resize_height=128, display=None, phase='train', augmentation=None, normalization=None):
-#         self.n_sample = n_sample
-#         self.phase = phase
-#         self.dataset = dataset.loc[dataset['Phase'] == self.phase, :].sample(self.n_sample) #ou dataset si on veut prendre tour le jeu de donnée
-#         self.batch_size = batch_size
-#         self.shuffle = shuffle
-#         self.resize = resize
-#         self.resize_width = resize_width
-#         self.resize_height = resize_height
-#         self.augmentation = augmentation
-#         self.normalization = normalization
-#         self.display = display
-#         self.on_epoch_end()
-
-#     def __getitem__(self, i):
-#         # collect batch images and masks
-#         start = i * self.batch_size
-#         stop = (i + 1) * self.batch_size
-#         #print('start barch is ', start)
-#         #print('stop barch is ', stop)
-#         images = []
-#         masks = []
-#         for j in range(start, stop):
-#             # Store entire paths to image_file and mask_file variable
-#             image_file = list(self.dataset['Path_x'])[j]
-#             print(image_file)
-#             mask_file = list(self.dataset['Path_y'])[j]
-#             unique_index_file = list(self.dataset['File_unique_index'])[j]
-
-#             # OpenImages and masks using OpenCV ibrary, and convert in np array
-#             image = cv2.imread(image_file)
-#             #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#             mask = cv2.imread(mask_file)
-#             #mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-            
-#             # apply resize
-#             if self.resize:
-#                 dim = (self.resize_width, self.resize_height)
-#                 original_height = image.shape[0]
-#                 original_width = image.shape[1]
-#                 original_channels = image.shape[2]
-#                 image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA) # resize image
-#                 mask = cv2.resize(mask, dim, interpolation = cv2.INTER_AREA)
-#                 new_height = image.shape[0]
-#                 new_width = image.shape[1]
-#                 new_channels = image.shape[2]
-#                 print('original height was ', original_height, ' and new height is ', new_height)
-#                 print('original width was ', original_width, ' and new width is ', new_width)
-#                 print('original channels was ', original_channels, ' and new channels is ', new_channels)
-            
-#             # apply display
-#             if self.display:
-#                 #Display Image and Mask
-#                 plt.figure(figsize=(25, 5))
-#                 plt.subplots_adjust(hspace=0.5)
-#                 plt.subplot(120 + 1 + 0)
-#                 plt.imshow(image)
-#                 plt.subplot(120 + 1 + 1)
-#                 plt.imshow(mask)
-#                 plt.grid(False)
-#                 plt.suptitle(f'Images and Masks {unique_index_file}')
-#                 plt.show()
-
-#             # apply normalization : Normalizing RGB values ; The range for each individual colour is 0-255 (as 2^8 = 256 possibilities).
-#             if self.normalization:
-#                 normalizedImg = np.zeros((800, 800))
-#                 image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX) #image/255 ou normalizedImg
-#                 mask = cv2.normalize(mask, None, 0, 255, cv2.NORM_MINMAX) #mask/255
-#                 # apply display
-#                 if self.display:
-#                     print(f'----------------Normalized Image and Mask {j} from batch collected-----------------')
-#                     #Display Image and Mask
-#                     plt.figure(figsize=(25, 5))
-#                     plt.subplots_adjust(hspace=0.5)
-#                     plt.subplot(120 + 1 + 0)
-#                     plt.imshow(image)
-#                     plt.subplot(120 + 1 + 1)
-#                     plt.imshow(mask)
-#                     plt.grid(False)
-#                     plt.suptitle(f'Normalized Images and Masks {unique_index_file}')
-#                     plt.show()
-            
-#             # apply augmentations
-#             if ((self.augmentation is not None) & (self.phase == 'train')):
-#                 # Augment an image
-#                 sample = self.augmentation(image=image, mask=mask)
-#                 augmented_image, augmented_mask = sample['image'], sample['mask']
-#                 # apply display
-#                 if self.display:
-#                     print(f'----------------Augmented Image and Mask {j} from batch collected-----------------')
-#                     #Display Image and Mask
-#                     plt.figure(figsize=(25, 5))
-#                     plt.subplots_adjust(hspace=0.5)
-#                     plt.subplot(120 + 1 + 0)
-#                     plt.imshow(augmented_image)
-#                     plt.subplot(120 + 1 + 1)
-#                     plt.imshow(augmented_mask)
-#                     plt.grid(False)
-#                     plt.suptitle(f'Augmented Images and Masks {unique_index_file}')
-#                     plt.show()
-#                     images.append(augmented_image)
-#                     masks.append(augmented_mask)
-                    
-#             # append image and mask to batch
-#             images.append(image)
-#             #print('images len is ', len(images))
-#             masks.append(mask)   
-#             #print('masks len is ', len(masks))
-#             print(f'----------------Image and Mask {j} from batch collected-----------------')
-
-#         # transpose list of lists
-#         image_batch = np.stack(images, axis=0) #A confirmer si images ou image
-#         #print('image_batch shape is ', image_batch.shape)
-#         mask_batch = np.stack(masks, axis=0) #A confirmer si masks ou mask
-#         #print('mask_batch shape is ', mask_batch.shape)
-#         return image_batch, mask_batch
+class GeneratorCitySpace(Sequence):
+        
+    CATS = {
+        'void': [0, 1, 2, 3, 4, 5, 6],
+        'flat': [7, 8, 9, 10],
+        'construction': [11, 12, 13, 14, 15, 16],
+        'object': [17, 18, 19, 20],
+        'nature': [21, 22],
+        'sky': [23],
+        'human': [24, 25],
+        'vehicle': [26, 27, 28, 29, 30, 31, 32, 33,-1]
+    }
     
-#     def __len__(self):
-#         """Denotes the number of batches per epoch"""
-#         return len(self.dataset) // self.batch_size
+    def _convert_mask(self,img):
+        img = np.squeeze(img)
+        mask = np.zeros((img.shape[0], img.shape[1], 8),dtype=np.uint8)
+        for i in range(-1, 34):
+            if i in self.CATS['void']:
+                mask[:,:,0] = np.logical_or(mask[:,:,0],(img==i))
+            elif i in self.CATS['flat']:
+                mask[:,:,1] = np.logical_or(mask[:,:,1],(img==i))
+            elif i in self.CATS['construction']:
+                mask[:,:,2] = np.logical_or(mask[:,:,2],(img==i))
+            elif i in self.CATS['object']:
+                mask[:,:,3] = np.logical_or(mask[:,:,3],(img==i))
+            elif i in self.CATS['nature']:
+                mask[:,:,4] = np.logical_or(mask[:,:,4],(img==i))
+            elif i in self.CATS['sky']:
+                mask[:,:,5] = np.logical_or(mask[:,:,5],(img==i))
+            elif i in self.CATS['human']:
+                mask[:,:,6] = np.logical_or(mask[:,:,6],(img==i))
+            elif i in self.CATS['vehicle']:
+                mask[:,:,7] = np.logical_or(mask[:,:,7],(img==i))
+        return np.array(np.argmax(mask,axis=2), dtype='uint8')
     
-#     def on_epoch_end(self):
-#         """Callback function to shuffle dataset each epoch"""
-#         if self.shuffle:
-#             np.random.shuffle(self.dataset.values)
+    def _transform_data(self,X,Y):
+        if len(Y.shape) == 3:
+            Y = np.expand_dims(Y, axis = 3)
+        X = X /255. 
+        return np.array(X,dtype=np.uint8), Y
+    
+    def __init__(self, image_filenames, labels, batch_size,crop_x,crop_y):
+        """Générateur de données avec augmentation des images
+        """
+        self.image_filenames, self.labels = image_filenames, labels
+        self.batch_size = batch_size
+        self.crop_x,self.crop_y = crop_x, crop_y
+
+    def __len__(self):
+        return int(np.ceil(len(self.image_filenames) / float(self.batch_size)))
+
+    def __getitem__(self, idx):
+        batch_x = self.image_filenames[idx * self.batch_size:(idx + 1) * self.batch_size]
+        batch_y = self.labels[idx * self.batch_size:(idx + 1) * self.batch_size]
+        x=[cv2.resize(cv2.imread(path_X),(self.crop_x,self.crop_y)) for path_X in batch_x]
+        y = [cv2.resize(self._convert_mask(cv2.imread(path_Y,0)),(self.crop_x,self.crop_y)) for path_Y in batch_y]
+        y=np.array(y)
+        x=np.array(x)
+        return self._transform_data(x,y)
 
 # %% [markdown]
 # # Model UNET
