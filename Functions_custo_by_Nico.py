@@ -36,7 +36,7 @@ import sys
 from joblib import dump, load
 import pickle
 
-from PIL import Image
+#from PIL import Image
 
 import tensorflow as tf
 from tensorflow import keras
@@ -600,6 +600,69 @@ def plot_history(history):
     plt.title('Training and Validation loss')
     plt.legend()
 
+# %%
+def display_learning_curves(history):
+    acc = history.history["mean_io_u"]
+    val_acc = history.history["val_mean_io_u"]
+
+    loss = history.history["loss"]
+    val_loss = history.history["val_loss"]
+
+    epochs_range = range(30)
+
+    fig = plt.figure(figsize=(15,5))
+
+    plt.subplot(1,2,1)
+    plt.plot(epochs_range, acc, label="train mean_io_u")
+    plt.plot(epochs_range, val_acc, label="validataion mean_io_u")
+    plt.title("mean_io_u")
+    plt.xlabel("Epoch")
+    plt.ylabel("mean_io_u")
+    plt.legend(loc="lower right")
+
+    plt.subplot(1,2,2)
+    plt.plot(epochs_range, loss, label="train loss")
+    plt.plot(epochs_range, val_loss, label="validataion loss")
+    plt.title("Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(loc="upper right")
+
+    fig.tight_layout()
+    plt.show()
+
+# %%
+def display_learning_curves_iou(history):
+    iou = history.history["iou_score"]
+    val_iou = history.history["val_iou_score"]
+
+    loss = history.history["loss"]
+    val_loss = history.history["val_loss"]
+    epochs_range=range(1, len(iou) + 1)
+    #epochs_range = range(n_epochs)
+
+    fig = plt.figure(figsize=(15,5))
+
+    plt.subplot(1,2,1)
+    plt.plot(epochs_range, iou, label="train iou_score")
+    plt.plot(epochs_range, val_iou, label="validataion iou_score")
+    plt.title("iou_score")
+    plt.xlabel("Epoch")
+    plt.ylabel("iou_score")
+    plt.legend(loc="upper left")
+
+    plt.subplot(1,2,2)
+    plt.plot(epochs_range, loss, label="train loss")
+    plt.plot(epochs_range, val_loss, label="validataion loss")
+    plt.title("Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(loc="upper right")
+
+    plt.suptitle(f"IoU Socre and Loss evolution during {model_test.name} training, (stopped by callback at epochs : {len(iou)})  ")
+    #fig.tight_layout()
+    plt.show()
+
 # %% [markdown]
 # ## Specific For Image project 8
 
@@ -806,9 +869,10 @@ class Dataloader_simple(keras.utils.Sequence):
 
             # apply normalization : Normalizing RGB values ; The range for each individual colour is 0-255 (as 2^8 = 256 possibilities).
             if self.normalization:
-                normalizedImg = np.zeros((800, 800))
-                image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX) #image/255 ou normalizedImg
-                mask = cv2.normalize(mask, None, 0, 255, cv2.NORM_MINMAX) #mask/255
+                #normalizedImg = np.zeros((800, 800))
+                image = cv2.normalize(image, None, 0, 1, cv2.NORM_MINMAX) #ou np.array(image/255, dtype='uint8')
+                #mask = np.array(mask/255, dtype='uint8') # cv2.normalize(mask, None, 0, 1, cv2.NORM_MINMAX) #mask/255
+            
                 # apply display
                 if self.display:
                     print(f'----------------Normalized Image and Mask {j} from batch collected-----------------')
@@ -997,9 +1061,9 @@ class Dataloader_advanced(keras.utils.Sequence):
 
             # apply normalization : Normalizing RGB values ; The range for each individual colour is 0-255 (as 2^8 = 256 possibilities).
             if self.normalization:
-                normalizedImg = np.zeros((800, 800))
-                image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX) #image/255 ou normalizedImg
-                mask = cv2.normalize(mask, None, 0, 255, cv2.NORM_MINMAX) #mask/255
+                #normalizedImg = np.zeros((800, 800))
+                image = cv2.normalize(image, None, 0, 1, cv2.NORM_MINMAX) #np.array(image/255, dtype='uint8') 
+                #mask = np.array(mask/255, dtype='uint8') # cv2.normalize(mask, None, 0, 1, cv2.NORM_MINMAX) #mask/255
                 # apply display
                 if self.display:
                     print(f'----------------Normalized Image and Mask {j} from batch collected-----------------')
@@ -1061,8 +1125,97 @@ class Dataloader_advanced(keras.utils.Sequence):
             np.random.shuffle(self.dataset.values)
 
 # %%
-class GeneratorCitySpace(Sequence):
+# # DATALOADER - Notre classe hérite de la classe Keras.utils.Sequence
+# # Elle permet de créer un générateur de données
+# # Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
+# class GeneratorCitySpace(keras.utils.Sequence):
         
+#     CATS = {
+#         'void': [0, 1, 2, 3, 4, 5, 6],
+#         'flat': [7, 8, 9, 10],
+#         'construction': [11, 12, 13, 14, 15, 16],
+#         'object': [17, 18, 19, 20],
+#         'nature': [21, 22],
+#         'sky': [23],
+#         'human': [24, 25],
+#         'vehicle': [26, 27, 28, 29, 30, 31, 32, 33,-1]
+#     }
+    
+#     def _convert_mask(self,img):
+#         img = np.squeeze(img)
+#         mask = np.zeros((img.shape[0], img.shape[1], 8),dtype=np.uint8)
+#         for i in range(-1, 34):
+#             if i in self.CATS['void']:
+#                 mask[:,:,0] = np.logical_or(mask[:,:,0],(img==i))
+#             elif i in self.CATS['flat']:
+#                 mask[:,:,1] = np.logical_or(mask[:,:,1],(img==i))
+#             elif i in self.CATS['construction']:
+#                 mask[:,:,2] = np.logical_or(mask[:,:,2],(img==i))
+#             elif i in self.CATS['object']:
+#                 mask[:,:,3] = np.logical_or(mask[:,:,3],(img==i))
+#             elif i in self.CATS['nature']:
+#                 mask[:,:,4] = np.logical_or(mask[:,:,4],(img==i))
+#             elif i in self.CATS['sky']:
+#                 mask[:,:,5] = np.logical_or(mask[:,:,5],(img==i))
+#             elif i in self.CATS['human']:
+#                 mask[:,:,6] = np.logical_or(mask[:,:,6],(img==i))
+#             elif i in self.CATS['vehicle']:
+#                 mask[:,:,7] = np.logical_or(mask[:,:,7],(img==i))
+#         return np.array(np.argmax(mask,axis=2), dtype='uint8')
+    
+#     def _transform_data(self,X,Y):
+#         if len(Y.shape) == 3:
+#             Y = np.expand_dims(Y, axis = 3)
+#         X = X /255. 
+#         return np.array(X,dtype=np.uint8), Y
+    
+#     def __init__(self, image_filenames, labels, batch_size,crop_x,crop_y):
+#         """Générateur de données avec augmentation des images
+#         """
+#         self.image_filenames, self.labels = image_filenames, labels
+#         self.batch_size = batch_size
+#         self.crop_x,self.crop_y = crop_x, crop_y
+
+#     def __len__(self):
+#         return int(np.ceil(len(self.image_filenames) / float(self.batch_size)))
+
+#     def __getitem__(self, idx):
+#         batch_x = self.image_filenames[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         batch_y = self.labels[idx * self.batch_size:(idx + 1) * self.batch_size]
+#         x=[cv2.resize(cv2.imread(path_X),(self.crop_x,self.crop_y)) for path_X in batch_x]
+#         y = [cv2.resize(self._convert_mask(cv2.imread(path_Y,0)),(self.crop_x,self.crop_y)) for path_Y in batch_y]
+#         y=np.array(y)
+#         x=np.array(x)
+#         return self._transform_data(x,y)
+
+# %%
+# DATALOADER - Notre classe hérite de la classe Keras.utils.Sequence
+# Elle permet de créer un générateur de données
+# Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
+class GeneratorCitySpace(keras.utils.Sequence):
+    """Load data from dataset to build bacthes
+    Args:
+        dataset : dataframe listing data and paths
+        n_sample : to work with a reduced dataset
+        batch_size: Integet number of images in batch.
+        resize_width & resize_height: New dimensions after resizing
+        phase: allow to set if dataloader shall filter on train, val or test images/masks
+        augmentation: Variable defining augmentation of image and mask
+    """
+    # We provide one dataset, containing labelIds Masks and Images
+    def __init__(self, dataset, n_sample=None, batch_size=1, resize_width=256, resize_height=128, phase='train', augmentation=None):
+        self.n_sample = n_sample
+        self.phase = phase
+        if (self.n_sample is None):
+            self.dataset = dataset.loc[dataset['Phase'] == self.phase, :]
+        else:
+            self.dataset = dataset.loc[dataset['Phase'] == self.phase, :].sample(self.n_sample) #ou dataset si on veut prendre tour le jeu de donnée
+        self.batch_size = batch_size
+        self.resize_width = resize_width
+        self.resize_height = resize_height
+        self.augmentation = augmentation
+        self.on_epoch_end()
+
     CATS = {
         'void': [0, 1, 2, 3, 4, 5, 6],
         'flat': [7, 8, 9, 10],
@@ -1094,32 +1247,54 @@ class GeneratorCitySpace(Sequence):
                 mask[:,:,6] = np.logical_or(mask[:,:,6],(img==i))
             elif i in self.CATS['vehicle']:
                 mask[:,:,7] = np.logical_or(mask[:,:,7],(img==i))
-        return np.array(np.argmax(mask,axis=2), dtype='uint8')
-    
-    def _transform_data(self,X,Y):
-        if len(Y.shape) == 3:
-            Y = np.expand_dims(Y, axis = 3)
-        X = X /255. 
-        return np.array(X,dtype=np.uint8), Y
-    
-    def __init__(self, image_filenames, labels, batch_size,crop_x,crop_y):
-        """Générateur de données avec augmentation des images
-        """
-        self.image_filenames, self.labels = image_filenames, labels
-        self.batch_size = batch_size
-        self.crop_x,self.crop_y = crop_x, crop_y
+        return np.array(mask,dtype='uint8') #retrun the mask OneHotEncoded
+        #return np.array(np.argmax(mask,axis=2), dtype='uint8') #return the mask with the labelId
 
+    def __getitem__(self, i):
+        # collect batch images and masks
+        start = i * self.batch_size
+        stop = (i + 1) * self.batch_size
+        images = []
+        masks = []
+        for j in range(start, stop):
+            # OpenImages and masks, and apply resize + mask color conversion + Normalization
+            image = (cv2.resize(cv2.imread(list(self.dataset['Path_x'])[j]), (self.resize_width, self.resize_height), interpolation = cv2.INTER_AREA)) #image/255 ou normalizedImg
+            mask = self._convert_mask(cv2.resize(cv2.imread(list(self.dataset['Path_y'])[j],0), (self.resize_width, self.resize_height), interpolation = cv2.INTER_AREA)) #mask/255
+            #mask = cv2.resize(cv2.imread(list(self.dataset['Path_y'])[j]), (self.resize_width, self.resize_height), interpolation = cv2.INTER_AREA) #mask/255
+            
+            if ((self.augmentation is not None) & (self.phase == 'train')):
+                # apply augmentations
+                sample = self.augmentation(image=image, mask=mask)
+                augmented_image, augmented_mask = sample['image'], sample['mask'] 
+                #augmented_image = augmented_image/255
+                #augmented_mask = augmented_mask/255
+                # append augmented image and mask to batch
+                images.append(augmented_image)
+                masks.append(augmented_mask)
+            image = image/255
+            #mask = mask/255
+
+
+            # append image and mask to batch
+            images.append(image)
+            masks.append(mask)   
+
+        # transpose list of lists = Data Generator outputs
+        image_batch = np.stack(images, axis=0) 
+        #Add 1 dimension to return image_batch and mask_batch in 4 dimensions (batch number, height, width, channels), avec channel = 1 pour les masques et =3 pour les images
+        #mask_batch = np.expand_dims(np.stack(masks, axis=0), axis = 3)
+        mask_batch = np.stack(masks, axis=0) 
+
+        # Data Generator outputs
+        return image_batch, mask_batch
+    
     def __len__(self):
-        return int(np.ceil(len(self.image_filenames) / float(self.batch_size)))
-
-    def __getitem__(self, idx):
-        batch_x = self.image_filenames[idx * self.batch_size:(idx + 1) * self.batch_size]
-        batch_y = self.labels[idx * self.batch_size:(idx + 1) * self.batch_size]
-        x=[cv2.resize(cv2.imread(path_X),(self.crop_x,self.crop_y)) for path_X in batch_x]
-        y = [cv2.resize(self._convert_mask(cv2.imread(path_Y,0)),(self.crop_x,self.crop_y)) for path_Y in batch_y]
-        y=np.array(y)
-        x=np.array(x)
-        return self._transform_data(x,y)
+        """Denotes the number of batches per epoch"""
+        return len(self.dataset) // self.batch_size
+    
+    def on_epoch_end(self):
+        """Callback function to shuffle dataset each epoch"""
+        np.random.shuffle(self.dataset.values)
 
 # %% [markdown]
 # # Model UNET
@@ -1137,57 +1312,189 @@ from tensorflow.keras.layers import Activation, MaxPool2D, Concatenate
 from tensorflow.keras.applications import VGG16
 from tensorflow.keras.applications import ResNet50
 
-#Conv block: Convolution block
-def conv_block(input, num_filters):
-    x = Conv2D(num_filters, 3, padding="same")(input)
-    x = BatchNormalization()(x)   #Not in the original network. 
-    x = Activation("relu")(x)
-    x = Conv2D(num_filters, 3, padding="same")(x)
-    x = BatchNormalization()(x)  #Not in the original network
-    x = Activation("relu")(x)
-    return x
 
-#Encoder block: Conv block followed by maxpooling
-def encoder_block(input, num_filters):
-    x = conv_block(input, num_filters)
-    p = MaxPool2D((2, 2))(x)
-    return x, p   
+#Encoder block: Double convolution avec maxpooling
+#Durant cette phase, la taille de l'image réduit graduellement, alors que la profondeur s'accroit.
+#Cela signifie que le réseau apprend le "QUOI", mais perd le "Où"
+def encoder_block(input, num_filters, maxpool=None, dropout=None):
+    x = Conv2D(num_filters, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(input)
+    x = Conv2D(num_filters, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(x)
+    if dropout:
+        d = Dropout(0.5)(x)
+        if maxpool:
+            p = MaxPooling2D(pool_size=(2, 2))(d)    
+            return x, p, d
+        else:
+            return x, d
+    if maxpool:
+        p = MaxPooling2D(pool_size=(2, 2))(x)    
+        return x, p
+    else:
+        return x
 
 #Decoder block
-#skip features gets input from encoder for concatenation
-def decoder_block(input, skip_features, num_filters):
-    x = Conv2DTranspose(num_filters, (2, 2), strides=2, padding="same")(input)
-    x = Concatenate()([x, skip_features])
-    x = conv_block(x, num_filters)
-    return x
+#Durant cette phase, le décoder accroit la taille de l'image, alors que la prodondeur réduit
+#Il retrouve l'information "Où" avec les Up_Sampling. 
+#Au travers de la concaténation, i les Skip-Connections des couches.
+# #A la suite de chaque concaténation, nous appliquons encore les coubles convolutions
+def decoder_block(input, skip_connect, num_filters):
+    x = Conv2D(num_filters, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(input))
+    x = concatenate([skip_connect, x], axis = 3) #skip connections that concatenate the encoder feature map with the decoder
+    x = Conv2D(num_filters, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(x)
+    x = Conv2D(num_filters, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(x)
+    return x    
 
-#Build Unet using the blocks
-def build_unet(input_shape, n_classes):
-    inputs = Input(input_shape)
-    #inputs = Input((resize_height, resize_width, 3))
+    #Build Unet using the blocks
+def build_unet_block(input_shape, nb_class, n_filters = 32):
+    inputs = Input(input_shape) #(resize_height, resize_width, 3) #Transposed compare to input dim of data generator
+ 
+    conv1, pool1 = encoder_block(inputs, n_filters * 1, maxpool=True, dropout=None)
+    conv2, pool2 = encoder_block(pool1, n_filters * 2, maxpool=True, dropout=None)
+    conv3, pool3 = encoder_block(pool2, n_filters * 4, maxpool=True, dropout=None)
+    conv4, pool4, drop4 = encoder_block(pool3, n_filters * 8, maxpool=True, dropout=True)
+    conv5, drop5 = encoder_block(pool4, n_filters * 16, maxpool=None, dropout=True)
 
-    s1, p1 = encoder_block(inputs, 64)
-    s2, p2 = encoder_block(p1, 128)
-    s3, p3 = encoder_block(p2, 256)
-    s4, p4 = encoder_block(p3, 512)
+    conv6 = decoder_block(drop5, drop4, n_filters * 8)
+    conv7 = decoder_block(conv6, conv3, n_filters * 4)
+    conv8 = decoder_block(conv7, conv2, n_filters * 2)
+    conv9 = decoder_block(conv8, conv1, n_filters * 1)
+    
+    outputs = Conv2D(nb_class, 1, activation = 'softmax')(conv9)
 
-    b1 = conv_block(p4, 1024) #Bridge
-
-    d1 = decoder_block(b1, s4, 512)
-    d2 = decoder_block(d1, s3, 256)
-    d3 = decoder_block(d2, s2, 128)
-    d4 = decoder_block(d3, s1, 64)
-
-    if n_classes == 1:  #Binary
-        activation = 'sigmoid'
-    else:
-        activation = 'softmax'
-
-    outputs = Conv2D(n_classes, 1, padding="same", activation=activation)(d4)  #Change the activation based on n_classes
-    print(activation)
-
-    model = Model(inputs, outputs, name="U-Net")
+    model = Model(inputs=[inputs], outputs=[outputs], name='U-Net')
     return model
+
+# %%
+def build_unet():
+    inputs = Input((resize_width, resize_height, 3))
+    # Input
+    s = Lambda(x)(inputs)
+    # Layer 1 
+    c1 = Conv2D(32, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(inputs)
+    c1 = Dropout(0.1)(c1)
+    c1 = Conv2D(32, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c1)
+    p1 = MaxPool2D((2, 2))(c1)
+
+    c2 = Conv2D(64, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p1)
+    c2 = Dropout(0.1)(c2)
+    c2 = Conv2D(64, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c2)
+    p2 = MaxPool2D((2, 2))(c2)
+
+    c3 = Conv2D(128, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p2)
+    c3 = Dropout(0.2)(c3)
+    c3 = Conv2D(128, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c3)
+    p3 = MaxPool2D((2, 2))(c3)
+
+
+    c4 = Conv2D(256, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p3)
+    c4 = Dropout(0.2)(c4)
+    c4 = Conv2D(256, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c4)
+    p4 = MaxPool2D((2, 2))(c4)
+
+
+    c5 = Conv2D(512, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p4)
+    c5 = Dropout(0.3)(c5)
+    c5 = Conv2D(512, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c5)
+
+    u6 = Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(c5)
+    u6 = concatenate([u6, c4])
+    c6 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u6)
+    c6 = Dropout(0.2)(c6)
+    c6 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c6)
+
+
+
+    u7 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(c6)
+    u7 = concatenate([u7, c3])
+    c7 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u7)
+    c7 = Dropout(0.2)(c7)
+    c7 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c7)
+
+
+
+    u8 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(c7)
+    u8 = concatenate([u8, c2])
+    c8 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u8)
+    c8 = Dropout(0.1)(c8)
+    c8 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c8)
+
+
+
+    u9 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(c8)
+    u9 = concatenate([u9, c1])
+    c9 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u9)
+    c9 = Dropout(0.1)(c9)
+    c9 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c9)
+
+    outputs = Conv2D(8, (1, 1), activation='softmax')(c9)
+
+    return Model(inputs=[inputs], outputs=[outputs])
+
+
+# %%
+def conv2d_block(input_tensor, n_filters, kernel_size = 3, batchnorm = True):
+    """Function to add 2 convolutional layers with the parameters passed to it"""
+    # first layer
+    x = Conv2D(filters = n_filters, kernel_size = (kernel_size, kernel_size),\
+              kernel_initializer = 'he_normal', padding = 'same')(input_tensor)
+    if batchnorm:
+        x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    
+    # second layer
+    x = Conv2D(filters = n_filters, kernel_size = (kernel_size, kernel_size),\
+              kernel_initializer = 'he_normal', padding = 'same')(input_tensor)
+    if batchnorm:
+        x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    
+    return x
+  
+def get_unet(input_img, n_filters = 64, dropout = 0.1, batchnorm = True):
+    # Contracting Path
+    c1 = conv2d_block(input_img, n_filters * 1, kernel_size = 3, batchnorm = batchnorm)
+    p1 = MaxPooling2D((2, 2))(c1)
+    p1 = Dropout(dropout)(p1)
+    
+    c2 = conv2d_block(p1, n_filters * 2, kernel_size = 3, batchnorm = batchnorm)
+    p2 = MaxPooling2D((2, 2))(c2)
+    p2 = Dropout(dropout)(p2)
+    
+    c3 = conv2d_block(p2, n_filters * 4, kernel_size = 3, batchnorm = batchnorm)
+    p3 = MaxPooling2D((2, 2))(c3)
+    p3 = Dropout(dropout)(p3)
+    
+    c4 = conv2d_block(p3, n_filters * 8, kernel_size = 3, batchnorm = batchnorm)
+    p4 = MaxPooling2D((2, 2))(c4)
+    p4 = Dropout(dropout)(p4)
+    
+    c5 = conv2d_block(p4, n_filters = n_filters * 16, kernel_size = 3, batchnorm = batchnorm)
+    
+    # Expansive Path
+    u6 = Conv2DTranspose(n_filters * 8, (3, 3), strides = (2, 2), padding = 'same')(c5)
+    u6 = concatenate([u6, c4])
+    u6 = Dropout(dropout)(u6)
+    c6 = conv2d_block(u6, n_filters * 8, kernel_size = 3, batchnorm = batchnorm)
+    
+    u7 = Conv2DTranspose(n_filters * 4, (3, 3), strides = (2, 2), padding = 'same')(c6)
+    u7 = concatenate([u7, c3])
+    u7 = Dropout(dropout)(u7)
+    c7 = conv2d_block(u7, n_filters * 4, kernel_size = 3, batchnorm = batchnorm)
+    
+    u8 = Conv2DTranspose(n_filters * 2, (3, 3), strides = (2, 2), padding = 'same')(c7)
+    u8 = concatenate([u8, c2])
+    u8 = Dropout(dropout)(u8)
+    c8 = conv2d_block(u8, n_filters * 2, kernel_size = 3, batchnorm = batchnorm)
+    
+    u9 = Conv2DTranspose(n_filters * 1, (3, 3), strides = (2, 2), padding = 'same')(c8)
+    u9 = concatenate([u9, c1])
+    u9 = Dropout(dropout)(u9)
+    c9 = conv2d_block(u9, n_filters * 1, kernel_size = 3, batchnorm = batchnorm)
+    
+    outputs = Conv2D(8, (1, 1), activation='softmax')(c9)
+    model = Model(inputs=[input_img], outputs=[outputs])
+    return model
+
 
 # %% [markdown]
 # 
