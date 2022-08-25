@@ -663,6 +663,49 @@ def display_learning_curves_iou(history):
     #fig.tight_layout()
     plt.show()
 
+# %%
+def display_learning_curves_iou_dice(history, model_name):
+    iou = history.history["iou_score"]
+    val_iou = history.history["val_iou_score"]
+
+    fscore = history.history["f1-score"]
+    val_fscore = history.history["val_f1-score"]
+
+    loss = history.history["loss"]
+    val_loss = history.history["val_loss"]
+    epochs_range=range(1, len(iou) + 1)
+    #epochs_range = range(n_epochs)
+
+    fig = plt.figure(figsize=(15,5))
+
+    plt.subplot(1,3,1)
+    plt.plot(epochs_range, iou, label="train iou_score")
+    plt.plot(epochs_range, val_iou, label="validataion iou_score")
+    plt.title("iou_score")
+    plt.xlabel("Epoch")
+    plt.ylabel("iou_score")
+    plt.legend(loc="upper left")
+
+    plt.subplot(1,3,2)
+    plt.plot(epochs_range, fscore, label="train Dice coeff")
+    plt.plot(epochs_range, val_fscore, label="validataion Dice coeff")
+    plt.title("f1-score or Dice coeff")
+    plt.xlabel("Epoch")
+    plt.ylabel("f1-score")
+    plt.legend(loc="upper left")
+
+    plt.subplot(1,3,3)
+    plt.plot(epochs_range, loss, label="train loss")
+    plt.plot(epochs_range, val_loss, label="validataion loss")
+    plt.title("Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(loc="upper right")
+
+    plt.suptitle(f"IoU Socre, Dice Coeff and Loss evolution during {model_name} training, (stopped by callback at epochs : {len(iou)})  ")
+    #fig.tight_layout()
+    plt.show()
+
 # %% [markdown]
 # ## Specific For Image project 8
 
@@ -1495,6 +1538,26 @@ def get_unet(input_img, n_filters = 64, dropout = 0.1, batchnorm = True):
     model = Model(inputs=[input_img], outputs=[outputs])
     return model
 
+
+# %% [markdown]
+# ## UNET Metrics and Loss
+
+# %%
+def dice_coeff(y_true, y_pred):
+    smooth = 1.
+    y_true_f = K.cast(K.flatten(y_true), K.floatx()) #K.flatten(y_true) #
+    y_pred_f = K.cast(K.flatten(y_pred), K.floatx()) #K.flatten(y_pred) #
+    intersection = K.sum(y_true_f * y_pred_f)
+    score = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    return score
+
+def dice_loss(y_true, y_pred):
+    loss = 1 - dice_coeff(y_true, y_pred)
+    return loss
+
+def total_loss(y_true, y_pred):
+    loss = binary_crossentropy(y_true, y_pred) + (3*dice_loss(y_true, y_pred))
+    return loss
 
 # %% [markdown]
 # 
