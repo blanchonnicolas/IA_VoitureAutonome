@@ -580,7 +580,7 @@ def plot_model_result(data: pd.DataFrame, score, model_name):
     plt.show()
 
 # %%
-def plot_history(history):
+def plot_history(history, model_name):
     acc=history.history['accuracy']
     val_acc=history.history['val_accuracy']
     loss=history.history['loss']
@@ -591,14 +591,18 @@ def plot_history(history):
     plt.subplot(1, 2, 1)
     plt.plot(x, acc, 'g', label='Training accuracy')
     plt.plot(x, val_acc, 'c', label='Validation accuracy')
-    plt.title('Training and Validation accuracy')
-    plt.legend()
+    plt.title(f'Training and Validation Metric: Accuracy')
+    plt.legend(loc="upper right")
     
     plt.subplot(1, 2, 2)
     plt.plot(x, loss, 'g', label='Training loss')
     plt.plot(x, val_loss, 'c', label='Validation loss')
-    plt.title('Training and Validation loss')
-    plt.legend()
+    plt.title(f"Training and Validation loss")
+    plt.legend(loc="upper left")
+
+    plt.suptitle(f"Metric & Loss evolution during {model_name} training, (stopped by callback at epochs : {len(acc)})")
+    plt.show()
+
 
 # %%
 def display_learning_curves(history):
@@ -611,6 +615,7 @@ def display_learning_curves(history):
     epochs_range = range(30)
 
     fig = plt.figure(figsize=(15,5))
+    plt.grid(color='white')
 
     plt.subplot(1,2,1)
     plt.plot(epochs_range, acc, label="train mean_io_u")
@@ -632,7 +637,42 @@ def display_learning_curves(history):
     plt.show()
 
 # %%
-def display_learning_curves_iou(history):
+def display_learning_curves_dice(history, model_name):
+
+    fscore = history.history["f1-score"]
+    val_fscore = history.history["val_f1-score"]
+
+    loss = history.history["loss"]
+    val_loss = history.history["val_loss"]
+    epochs_range=range(1, len(fscore) + 1)
+    #epochs_range = range(n_epochs)
+
+    fig = plt.figure(figsize=(15,5))
+    plt.grid(color='white')
+
+    plt.subplot(1,2,1)
+    plt.plot(epochs_range, fscore, 'g', label="train Dice coeff")
+    plt.plot(epochs_range, val_fscore, 'c', label="validataion Dice coeff")
+    plt.title("f1-score or Dice coeff")
+    plt.xlabel("Epoch")
+    plt.ylabel("f1-score")
+    plt.legend(loc="upper left")
+
+    plt.subplot(1,2,2)
+    plt.plot(epochs_range, loss, 'g', label="train loss")
+    plt.plot(epochs_range, val_loss, 'c', label="validataion loss")
+    plt.title(f"Training and Validation loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(loc="upper right")
+
+    plt.suptitle(f"Dice Coeff and Loss evolution during {model_name} training, (stopped by callback at epochs : {len(fscore)})  ")
+    #fig.tight_layout()
+    plt.show()
+
+
+# %%
+def display_learning_curves_iou(history, model_name):
     iou = history.history["iou_score"]
     val_iou = history.history["val_iou_score"]
 
@@ -642,24 +682,25 @@ def display_learning_curves_iou(history):
     #epochs_range = range(n_epochs)
 
     fig = plt.figure(figsize=(15,5))
+    plt.grid(color='white')
 
     plt.subplot(1,2,1)
-    plt.plot(epochs_range, iou, label="train iou_score")
-    plt.plot(epochs_range, val_iou, label="validataion iou_score")
+    plt.plot(epochs_range, iou, 'g', label="train iou_score")
+    plt.plot(epochs_range, val_iou, 'c', label="validataion iou_score")
     plt.title("iou_score")
     plt.xlabel("Epoch")
     plt.ylabel("iou_score")
     plt.legend(loc="upper left")
 
     plt.subplot(1,2,2)
-    plt.plot(epochs_range, loss, label="train loss")
-    plt.plot(epochs_range, val_loss, label="validataion loss")
+    plt.plot(epochs_range, loss, 'g', label="train loss")
+    plt.plot(epochs_range, val_loss, 'c', label="validataion loss")
     plt.title("Loss")
     plt.xlabel("Epoch")
-    plt.ylabel("Loss")
+    plt.ylabel(f"Training and Validation loss")
     plt.legend(loc="upper right")
 
-    plt.suptitle(f"IoU Socre and Loss evolution during {model_test.name} training, (stopped by callback at epochs : {len(iou)})  ")
+    plt.suptitle(f"IoU Socre and Loss evolution during {model_name} training, (stopped by callback at epochs : {len(iou)})  ")
     #fig.tight_layout()
     plt.show()
 
@@ -677,27 +718,28 @@ def display_learning_curves_iou_dice(history, model_name):
     #epochs_range = range(n_epochs)
 
     fig = plt.figure(figsize=(15,5))
+    plt.grid(color='white')
 
     plt.subplot(1,3,1)
-    plt.plot(epochs_range, iou, label="train iou_score")
-    plt.plot(epochs_range, val_iou, label="validataion iou_score")
+    plt.plot(epochs_range, iou, 'g', label="train iou_score")
+    plt.plot(epochs_range, val_iou, 'c', label="validataion iou_score")
     plt.title("iou_score")
     plt.xlabel("Epoch")
     plt.ylabel("iou_score")
     plt.legend(loc="upper left")
 
     plt.subplot(1,3,2)
-    plt.plot(epochs_range, fscore, label="train Dice coeff")
-    plt.plot(epochs_range, val_fscore, label="validataion Dice coeff")
+    plt.plot(epochs_range, fscore, 'g', label="train Dice coeff")
+    plt.plot(epochs_range, val_fscore, 'c', label="validataion Dice coeff")
     plt.title("f1-score or Dice coeff")
     plt.xlabel("Epoch")
     plt.ylabel("f1-score")
     plt.legend(loc="upper left")
 
     plt.subplot(1,3,3)
-    plt.plot(epochs_range, loss, label="train loss")
-    plt.plot(epochs_range, val_loss, label="validataion loss")
-    plt.title("Loss")
+    plt.plot(epochs_range, loss, 'g', label="train loss")
+    plt.plot(epochs_range, val_loss, 'c', label="validataion loss")
+    plt.title(f"Training and Validation loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend(loc="upper right")
@@ -705,6 +747,7 @@ def display_learning_curves_iou_dice(history, model_name):
     plt.suptitle(f"IoU Socre, Dice Coeff and Loss evolution during {model_name} training, (stopped by callback at epochs : {len(iou)})  ")
     #fig.tight_layout()
     plt.show()
+
 
 # %% [markdown]
 # ## Specific For Image project 8
@@ -1168,70 +1211,6 @@ class Dataloader_advanced(keras.utils.Sequence):
             np.random.shuffle(self.dataset.values)
 
 # %%
-# # DATALOADER - Notre classe hérite de la classe Keras.utils.Sequence
-# # Elle permet de créer un générateur de données
-# # Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
-# class GeneratorCitySpace(keras.utils.Sequence):
-        
-#     CATS = {
-#         'void': [0, 1, 2, 3, 4, 5, 6],
-#         'flat': [7, 8, 9, 10],
-#         'construction': [11, 12, 13, 14, 15, 16],
-#         'object': [17, 18, 19, 20],
-#         'nature': [21, 22],
-#         'sky': [23],
-#         'human': [24, 25],
-#         'vehicle': [26, 27, 28, 29, 30, 31, 32, 33,-1]
-#     }
-    
-#     def _convert_mask(self,img):
-#         img = np.squeeze(img)
-#         mask = np.zeros((img.shape[0], img.shape[1], 8),dtype=np.uint8)
-#         for i in range(-1, 34):
-#             if i in self.CATS['void']:
-#                 mask[:,:,0] = np.logical_or(mask[:,:,0],(img==i))
-#             elif i in self.CATS['flat']:
-#                 mask[:,:,1] = np.logical_or(mask[:,:,1],(img==i))
-#             elif i in self.CATS['construction']:
-#                 mask[:,:,2] = np.logical_or(mask[:,:,2],(img==i))
-#             elif i in self.CATS['object']:
-#                 mask[:,:,3] = np.logical_or(mask[:,:,3],(img==i))
-#             elif i in self.CATS['nature']:
-#                 mask[:,:,4] = np.logical_or(mask[:,:,4],(img==i))
-#             elif i in self.CATS['sky']:
-#                 mask[:,:,5] = np.logical_or(mask[:,:,5],(img==i))
-#             elif i in self.CATS['human']:
-#                 mask[:,:,6] = np.logical_or(mask[:,:,6],(img==i))
-#             elif i in self.CATS['vehicle']:
-#                 mask[:,:,7] = np.logical_or(mask[:,:,7],(img==i))
-#         return np.array(np.argmax(mask,axis=2), dtype='uint8')
-    
-#     def _transform_data(self,X,Y):
-#         if len(Y.shape) == 3:
-#             Y = np.expand_dims(Y, axis = 3)
-#         X = X /255. 
-#         return np.array(X,dtype=np.uint8), Y
-    
-#     def __init__(self, image_filenames, labels, batch_size,crop_x,crop_y):
-#         """Générateur de données avec augmentation des images
-#         """
-#         self.image_filenames, self.labels = image_filenames, labels
-#         self.batch_size = batch_size
-#         self.crop_x,self.crop_y = crop_x, crop_y
-
-#     def __len__(self):
-#         return int(np.ceil(len(self.image_filenames) / float(self.batch_size)))
-
-#     def __getitem__(self, idx):
-#         batch_x = self.image_filenames[idx * self.batch_size:(idx + 1) * self.batch_size]
-#         batch_y = self.labels[idx * self.batch_size:(idx + 1) * self.batch_size]
-#         x=[cv2.resize(cv2.imread(path_X),(self.crop_x,self.crop_y)) for path_X in batch_x]
-#         y = [cv2.resize(self._convert_mask(cv2.imread(path_Y,0)),(self.crop_x,self.crop_y)) for path_Y in batch_y]
-#         y=np.array(y)
-#         x=np.array(x)
-#         return self._transform_data(x,y)
-
-# %%
 # DATALOADER - Notre classe hérite de la classe Keras.utils.Sequence
 # Elle permet de créer un générateur de données
 # Cette classe parente vous assure dans le cas ou vous souhaitez utiliser du calcul parallèle avec vos threads, de garantir de parcourir une seule et unique fois vos données au cours d’une époch
@@ -1308,25 +1287,22 @@ class GeneratorCitySpace(keras.utils.Sequence):
             if ((self.augmentation is not None) & (self.phase == 'train')):
                 # apply augmentations
                 sample = self.augmentation(image=image, mask=mask)
-                augmented_image, augmented_mask = sample['image'], sample['mask'] 
-                #augmented_image = augmented_image/255
-                #augmented_mask = augmented_mask/255
-                # append augmented image and mask to batch
-                images.append(augmented_image)
-                masks.append(augmented_mask)
+                image, mask = sample['image'], sample['mask'] 
+            
             image = image/255
             #mask = mask/255
 
-
             # append image and mask to batch
             images.append(image)
-            masks.append(mask)   
+            masks.append(mask)  
 
+        images = np.array(images, dtype = np.float32)
+        masks = np.array(masks, dtype = np.float32)
         # transpose list of lists = Data Generator outputs
-        image_batch = np.stack(images, axis=0) 
+        image_batch = np.stack(images, axis=0) #.astype('float32')
         #Add 1 dimension to return image_batch and mask_batch in 4 dimensions (batch number, height, width, channels), avec channel = 1 pour les masques et =3 pour les images
         #mask_batch = np.expand_dims(np.stack(masks, axis=0), axis = 3)
-        mask_batch = np.stack(masks, axis=0) 
+        mask_batch = np.stack(masks, axis=0) #.astype('float32') #float32 ?
 
         # Data Generator outputs
         return image_batch, mask_batch
@@ -1408,68 +1384,67 @@ def build_unet_block(input_shape, nb_class, n_filters = 32):
     return model
 
 # %%
-def build_unet():
-    inputs = Input((resize_width, resize_height, 3))
-    # Input
-    s = Lambda(x)(inputs)
+def build_unet(input_shape, nb_class, n_filters = 32):
+    inputs = Input(input_shape)
+    
     # Layer 1 
-    c1 = Conv2D(32, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(inputs)
+    c1 = Conv2D(n_filters, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(inputs)
     c1 = Dropout(0.1)(c1)
-    c1 = Conv2D(32, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c1)
+    c1 = Conv2D(n_filters, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c1)
     p1 = MaxPool2D((2, 2))(c1)
 
-    c2 = Conv2D(64, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p1)
+    c2 = Conv2D((n_filters * 2), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p1)
     c2 = Dropout(0.1)(c2)
-    c2 = Conv2D(64, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c2)
+    c2 = Conv2D((n_filters * 2), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c2)
     p2 = MaxPool2D((2, 2))(c2)
 
-    c3 = Conv2D(128, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p2)
+    c3 = Conv2D((n_filters * 4), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p2)
     c3 = Dropout(0.2)(c3)
-    c3 = Conv2D(128, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c3)
+    c3 = Conv2D((n_filters * 4), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c3)
     p3 = MaxPool2D((2, 2))(c3)
 
 
-    c4 = Conv2D(256, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p3)
+    c4 = Conv2D((n_filters * 8), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p3)
     c4 = Dropout(0.2)(c4)
-    c4 = Conv2D(256, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c4)
+    c4 = Conv2D((n_filters * 8), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c4)
     p4 = MaxPool2D((2, 2))(c4)
 
 
-    c5 = Conv2D(512, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p4)
+    c5 = Conv2D((n_filters * 16), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(p4)
     c5 = Dropout(0.3)(c5)
-    c5 = Conv2D(512, (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c5)
+    c5 = Conv2D((n_filters * 16), (3,3), activation='relu', kernel_initializer='he_normal', padding='same')(c5)
 
-    u6 = Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(c5)
+    u6 = Conv2DTranspose((n_filters * 8), (2, 2), strides=(2, 2), padding='same')(c5)
     u6 = concatenate([u6, c4])
-    c6 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u6)
+    c6 = Conv2D((n_filters * 8), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u6)
     c6 = Dropout(0.2)(c6)
-    c6 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c6)
+    c6 = Conv2D((n_filters * 8), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c6)
 
 
 
-    u7 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(c6)
+    u7 = Conv2DTranspose((n_filters * 4), (2, 2), strides=(2, 2), padding='same')(c6)
     u7 = concatenate([u7, c3])
-    c7 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u7)
+    c7 = Conv2D((n_filters * 4), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u7)
     c7 = Dropout(0.2)(c7)
-    c7 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c7)
+    c7 = Conv2D((n_filters * 4), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c7)
 
 
 
-    u8 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(c7)
+    u8 = Conv2DTranspose((n_filters * 2), (2, 2), strides=(2, 2), padding='same')(c7)
     u8 = concatenate([u8, c2])
-    c8 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u8)
+    c8 = Conv2D((n_filters * 2), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u8)
     c8 = Dropout(0.1)(c8)
-    c8 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c8)
+    c8 = Conv2D((n_filters * 2), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c8)
 
 
 
-    u9 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(c8)
+    u9 = Conv2DTranspose((n_filters * 1), (2, 2), strides=(2, 2), padding='same')(c8)
     u9 = concatenate([u9, c1])
-    c9 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u9)
+    c9 = Conv2D((n_filters * 1), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(u9)
     c9 = Dropout(0.1)(c9)
-    c9 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c9)
+    c9 = Conv2D((n_filters * 1), (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c9)
 
-    outputs = Conv2D(8, (1, 1), activation='softmax')(c9)
+    outputs = Conv2D(nb_class, (1, 1), activation='softmax')(c9)
 
     return Model(inputs=[inputs], outputs=[outputs])
 
@@ -1493,7 +1468,7 @@ def conv2d_block(input_tensor, n_filters, kernel_size = 3, batchnorm = True):
     
     return x
   
-def get_unet(input_img, n_filters = 64, dropout = 0.1, batchnorm = True):
+def get_unet(input_img, n_filters = 32, dropout = 0.1, batchnorm = True):
     # Contracting Path
     c1 = conv2d_block(input_img, n_filters * 1, kernel_size = 3, batchnorm = batchnorm)
     p1 = MaxPooling2D((2, 2))(c1)
@@ -1543,6 +1518,8 @@ def get_unet(input_img, n_filters = 64, dropout = 0.1, batchnorm = True):
 # ## UNET Metrics and Loss
 
 # %%
+# Ffrom Kaggle https://www.kaggle.com/code/michaelcripman/road-segmentation-unet-keras-implementation
+# Or From GitHub : https://github.com/srihari-humbarwadi/cityscapes-segmentation-with-Unet/blob/master/batch_training.py
 def dice_coeff(y_true, y_pred):
     smooth = 1.
     y_true_f = K.cast(K.flatten(y_true), K.floatx()) #K.flatten(y_true) #
@@ -1558,6 +1535,14 @@ def dice_loss(y_true, y_pred):
 def total_loss(y_true, y_pred):
     loss = binary_crossentropy(y_true, y_pred) + (3*dice_loss(y_true, y_pred))
     return loss
+
+# %%
+def jaccard_distance_loss(y_true, y_pred, smooth=100):
+    intersection= (y_true * y_pred).abs().sum(dim=-1)
+    sum_ = torch.sum(y_true.abs() + y_pred.abs(), dim=-1)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    return (1 - jac) * smooth
+
 
 # %% [markdown]
 # 
