@@ -6,11 +6,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-#import seaborn as sns
-#sns.set_theme()
-#sns.set_palette("Greens_d")
-#sns.light_palette("seagreen", as_cmap=True)
-#sns.color_palette("Greens_d")
+import seaborn as sns
+sns.set_theme()
+sns.set_palette("Greens_d")
+sns.light_palette("seagreen", as_cmap=True)
+sns.color_palette("Greens_d")
 
 #import plotly.express as px
 import tarfile
