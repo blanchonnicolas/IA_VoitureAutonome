@@ -16,9 +16,9 @@ To do so, we rely on [Cityscapes dataset](https://www.cityscapes-dataset.com/dat
 
 You can see the results here :
 
--   [Presentation](https://github.com/blanchonnicolas/)
+-   [Presentation](https://github.com/blanchonnicolas/IA_Project8_Openclassrooms_IA_VoitureAutonome/blob/master/p8_05_presentation.pdf)
 
--   [Technical Note](https://github.com/blanchonnicolas/)
+-   [Technical Note](https://github.com/blanchonnicolas/IA_Project8_Openclassrooms_IA_VoitureAutonome/blob/master/p8_04_TechnicalNote.pdf)
 
 -   [Vidéo]()
 
