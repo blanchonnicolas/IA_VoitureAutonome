@@ -20,7 +20,7 @@ You can see the results here :
 
 -   [Technical Note](https://github.com/blanchonnicolas/IA_Project8_Openclassrooms_IA_VoitureAutonome/blob/master/p8_04_TechnicalNote.pdf)
 
--   [Vidéo]()
+-   [Vidéo](https://youtu.be/9ojW9Izs-nU)
 
 -   [Notebook 1 : datagenerator](https://github.com/blanchonnicolas/IA_Project8_Openclassrooms_IA_VoitureAutonome/blob/master/data_generator.ipynb)
     - Data Analysis: Visualisation, Modification using [OpenCV](https://opencv.org/)
